@@ -1,18 +1,21 @@
 from qdrant_client import QdrantClient
 from sentence_transformers import SentenceTransformer, CrossEncoder
+import config
 
-# 1. Load First-Stage Embedding Model & Second-Stage Cross-Encoder Reranker
+# Load First-Stage Embedding Model & Second-Stage Cross-Encoder Reranker
 print("Loading embedding and reranker models...")
-embedding_model = SentenceTransformer("BAAI/bge-small-en-v1.5")
-reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+embedding_model = SentenceTransformer(config.EMBEDDING_MODEL_NAME)
+reranker = CrossEncoder(config.RERANKER_MODEL_NAME)
 
-def connect_to_qdrant():
-    # If using local embedded mode:
-    return QdrantClient(url="http://localhost:6333")    
+def connect_to_qdrant(qdrant_url: str = config.QDRANT_URL):
+    return QdrantClient(url=qdrant_url)
 
-
-def retrieve_code_context(query: str, collection_name="github_codebase", top_k_retrieve=20, top_k_rerank=3):
+def retrieve_code_context(query: str, collection_name=config.DEFAULT_COLLECTION_NAME, top_k_retrieve=20, top_k_rerank=3):
     client = connect_to_qdrant()
+
+    if not client.collection_exists(collection_name):
+        print(f"Collection '{collection_name}' does not exist in Qdrant.")
+        return []
 
     query_vector = embedding_model.encode(query).tolist()
 
@@ -59,17 +62,11 @@ def format_context_for_llm(results):
     return context_str
 
 if __name__ == "__main__":
-    # Test Query
     user_query = "What are the packages used in this project?"
-    
     print(f"\n🔍 Searching for: '{user_query}'...\n")
     top_snippets = retrieve_code_context(user_query, top_k_retrieve=15, top_k_rerank=3)
     
-    # Display retrieved results
     for snippet in top_snippets:
         print(f"🎯 Score: {snippet['score']:.4f} | File: {snippet['file_path']}")
         print(f"Code Preview:\n{snippet['code'][:200]}...\n")
         print("=" * 60)
-
-    # Inspect final LLM prompt context string
-    formatted_prompt_context = format_context_for_llm(top_snippets)

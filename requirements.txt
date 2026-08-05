@@ -1,0 +1,11 @@
+gitpython>=3.1.40
+langchain-text-splitters>=0.0.1
+sentence-transformers>=2.2.2
+qdrant-client>=1.7.0
+ollama>=0.1.6
+requests>=2.31.0
+pillow>=10.0.0
+fastapi>=0.100.0
+uvicorn>=0.22.0
+python-dotenv>=1.0.0
+pydantic>=2.0.0
