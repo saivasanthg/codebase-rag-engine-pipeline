@@ -6,6 +6,7 @@ from langchain_text_splitters import Language, RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
+import config
 
 EXTENSION_MAP = {
     ".py": Language.PYTHON,
@@ -14,7 +15,7 @@ EXTENSION_MAP = {
     ".cpp": Language.CPP,
     ".java": Language.JAVA,
     ".go": Language.GO,
-    ".md" : Language.MARKDOWN
+    ".md": Language.MARKDOWN
 }
 
 def remove_readonly(func, path, exc_info):
@@ -24,7 +25,7 @@ def remove_readonly(func, path, exc_info):
 
 def clone_repository(repo_url: str, target_dir: str = "./downloaded_repo") -> str:
     if os.path.exists(target_dir):
-        shutil.rmtree(target_dir,onerror=remove_readonly)  
+        shutil.rmtree(target_dir, onerror=remove_readonly)  
     
     print(f"Cloning {repo_url} into {target_dir}...")
     Repo.clone_from(repo_url, target_dir)
@@ -37,7 +38,6 @@ def filter_code_files(repo_path: str):
     for root, dirs, files in os.walk(repo_path):
         dirs[:] = [d for d in dirs if d not in ignored_dirs]
         for file in files:
-            
             ext = os.path.splitext(file)[1].lower()
             if ext in EXTENSION_MAP:
                 print(file)
@@ -45,8 +45,7 @@ def filter_code_files(repo_path: str):
                 
     return code_files
 
-# 2. Document-based Chunking (Your Code)
-def chunk_code_file(file_path: str, repo_root: str, chunk_size: int = 800, chunk_overlap: int = 100):
+def chunk_code_file(file_path: str, repo_root: str, chunk_size: int = config.CHUNK_SIZE, chunk_overlap: int = config.CHUNK_OVERLAP):
     ext = os.path.splitext(file_path)[1].lower()
     language = EXTENSION_MAP.get(ext)
     
@@ -85,7 +84,6 @@ def chunk_code_file(file_path: str, repo_root: str, chunk_size: int = 800, chunk
 
     return processed_chunks
 
-# 3. Process All Files Across Repo
 def process_repository(repo_path: str):
     code_files = filter_code_files(repo_path)
     all_documents = []
@@ -97,15 +95,9 @@ def process_repository(repo_path: str):
     print(f"Total source files: {len(code_files)} | Total Document chunks: {len(all_documents)}")
     return all_documents
 
-# 4. Storage Function (Updated to consume Document objects)
-def store_in_qdrant(documents, collection_name="github_codebase"):
-    # Initialize Embedding Model
-    embedding_model = SentenceTransformer("BAAI/bge-small-en-v1.5")
-    
-    # Connect to Qdrant (Docker local instance)
-    client = QdrantClient(url="http://localhost:6333")
-
-    # Vector dimensions for bge-small-en-v1.5
+def store_in_qdrant(documents, collection_name=config.DEFAULT_COLLECTION_NAME, qdrant_url=config.QDRANT_URL):
+    embedding_model = SentenceTransformer(config.EMBEDDING_MODEL_NAME)
+    client = QdrantClient(url=qdrant_url)
     vector_size = 384 
 
     if client.collection_exists(collection_name):
@@ -120,10 +112,7 @@ def store_in_qdrant(documents, collection_name="github_codebase"):
     print("Generating embeddings and storing in Qdrant...")
 
     for idx, doc in enumerate(documents):
-        # Generate vector for page_content
         vector = embedding_model.encode(doc.page_content).tolist()
-
-        # Build Qdrant Point mapping doc attributes directly
         point = PointStruct(
             id=idx,
             vector=vector,
@@ -137,12 +126,14 @@ def store_in_qdrant(documents, collection_name="github_codebase"):
         )
         points.append(point)
 
-    # Batch insert into Qdrant
     client.upsert(collection_name=collection_name, points=points)
     print(f"Successfully indexed {len(points)} document chunks in Qdrant!")
 
+def ingest_repository(repo_url: str, collection_name: str = config.DEFAULT_COLLECTION_NAME):
+    repo_dir = clone_repository(repo_url)
+    documents = process_repository(repo_dir)
+    store_in_qdrant(documents, collection_name=collection_name)
+
 if __name__ == "__main__":
     TEST_REPO_URL = "https://github.com/maheshpaulj/ResumeItNow"
-    repo_dir = clone_repository(TEST_REPO_URL)
-    documents = process_repository(repo_dir)
-    store_in_qdrant(documents)
+    ingest_repository(TEST_REPO_URL)
