@@ -1,0 +1,16 @@
+qdrant-client>=1.7.0
+sentence-transformers>=2.2.2
+gitpython>=3.1.40
+langchain-text-splitters>=0.0.1
+ollama>=0.1.6
+requests>=2.28.0
+streamlit>=1.30.0
+starlette>=0.46.0,<1.0.0
+python-dotenv>=1.0.0
+torch>=2.0.0
+torchvision>=0.15.0
+pillow>=9.5.0
+easyocr>=1.7.0
+opencv-python-headless>=4.8.0
+fastapi>=0.100.0
+uvicorn>=0.22.0

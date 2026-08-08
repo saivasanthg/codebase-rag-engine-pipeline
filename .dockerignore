@@ -1,0 +1,13 @@
+.git
+.gitignore
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+.idea
+.vscode
+qdrant_db
+downloaded_repo
