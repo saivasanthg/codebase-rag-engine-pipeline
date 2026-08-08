@@ -22,7 +22,7 @@ The RAG engine has been empirically evaluated across retrieval speed, reranking 
 
 ---
 
-## 🏗️ Architecture & Dataflow
+##  Architecture & Dataflow
 
 ```mermaid
 graph TD
@@ -51,7 +51,7 @@ graph TD
 
 ---
 
-## ⚡ Quickstart Guide
+##  Quickstart Guide
 
 ### 1. Local Environment Setup
 
@@ -86,7 +86,7 @@ streamlit run app.py
 
 ---
 
-## 🐳 Docker Deployment
+##  Docker Deployment
 
 ### Launch with Docker Compose
 To run the entire system (FastAPI backend + Streamlit UI) in isolated containers:
@@ -110,5 +110,5 @@ docker push ghcr.io/saivasanthg/codebase-rag-engine-pipeline:latest
 
 ---
 
-## 📜 License
+##  License
 MIT License.
